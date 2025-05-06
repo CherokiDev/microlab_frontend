@@ -15,6 +15,7 @@ function App() {
       const client = mqtt.connect(MQTT_BROKER, {
         username,
         password,
+        rejectUnauthorized: false,
       });
 
       client.on("connect", () => {
