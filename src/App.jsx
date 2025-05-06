@@ -41,7 +41,6 @@ function App() {
         console.error("Error en la conexión MQTT:", err);
       });
 
-      // Limpiar conexión al desmontar el componente
       return () => {
         client.end();
       };
