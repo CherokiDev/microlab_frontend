@@ -1,49 +1,50 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 
 const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER;
 const TOPIC = import.meta.env.VITE_MQTT_TOPIC;
+const CONFIG_TOPIC =
+  import.meta.env.VITE_MQTT_CONFIG_TOPIC || "sensors/riego_esp32_01/config";
 
 function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [humidity, setHumidity] = useState(null);
+  const [client, setClient] = useState(null);
+
+  const [data, setData] = useState({
+    humedad: null,
+    temperatura: null,
+    umbral: null,
+  });
+  const [newUmbral, setNewUmbral] = useState("");
 
   useEffect(() => {
     if (isConnected) {
-      const client = mqtt.connect(MQTT_BROKER, {
+      const mqttClient = mqtt.connect(MQTT_BROKER, {
         username,
         password,
         rejectUnauthorized: false,
       });
 
-      client.on("connect", () => {
-        console.log("Conectado al broker MQTT");
-        client.subscribe(TOPIC, (err) => {
-          if (!err) {
-            console.log(`Suscrito al tópico: ${TOPIC}`);
-          } else {
-            console.error("Error al suscribirse:", err);
-          }
+      setClient(mqttClient);
+
+      mqttClient.on("connect", () => {
+        mqttClient.subscribe(TOPIC, (err) => {
+          if (!err) console.log(`Suscrito al tópico: ${TOPIC}`);
         });
       });
 
-      client.on("message", (topic, message) => {
-        if (topic === TOPIC) {
-          const data = JSON.parse(message.toString());
-          console.log(data);
-          setHumidity(data.humidity);
+      mqttClient.on("message", (topic, message) => {
+        try {
+          const payload = JSON.parse(message.toString());
+          setData(payload);
+        } catch (err) {
+          console.error("Error al parsear mensaje:", err);
         }
       });
 
-      client.on("error", (err) => {
-        console.error("Error en la conexión MQTT:", err);
-      });
-
-      return () => {
-        client.end();
-      };
+      return () => mqttClient.end();
     }
   }, [isConnected, username, password]);
 
@@ -56,17 +57,22 @@ function App() {
     }
   };
 
+  const handleUmbralChange = () => {
+    if (client && newUmbral) {
+      const umbralValue = parseFloat(newUmbral);
+      client.publish(CONFIG_TOPIC, JSON.stringify({ umbral: umbralValue }));
+      console.log("Nuevo umbral enviado:", umbralValue);
+      setNewUmbral("");
+    }
+  };
+
   if (!isConnected) {
     return (
       <div
-        style={{
-          fontFamily: "Arial, sans-serif",
-          textAlign: "center",
-          marginTop: "50px",
-        }}
+        style={{ fontFamily: "sans-serif", textAlign: "center", marginTop: 50 }}
       >
         <h1>Conexión al Broker MQTT</h1>
-        <form onSubmit={handleLogin} style={{ marginTop: "20px" }}>
+        <form onSubmit={handleLogin} style={{ marginTop: 20 }}>
           <div>
             <label>
               Usuario:
@@ -74,22 +80,22 @@ function App() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                style={{ marginLeft: "10px" }}
+                style={{ marginLeft: 10 }}
               />
             </label>
           </div>
-          <div style={{ marginTop: "10px" }}>
+          <div style={{ marginTop: 10 }}>
             <label>
               Contraseña:
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ marginLeft: "10px" }}
+                style={{ marginLeft: 10 }}
               />
             </label>
           </div>
-          <button type="submit" style={{ marginTop: "20px" }}>
+          <button type="submit" style={{ marginTop: 20 }}>
             Conectar
           </button>
         </form>
@@ -99,15 +105,34 @@ function App() {
 
   return (
     <div
-      style={{
-        fontFamily: "Arial, sans-serif",
-        textAlign: "center",
-        marginTop: "50px",
-      }}
+      style={{ fontFamily: "sans-serif", textAlign: "center", marginTop: 50 }}
     >
-      <h1>Dashboard de Sensor de Humedad</h1>
-      <div style={{ marginTop: "20px" }}>
-        <h2>Humedad: {humidity !== null ? `${humidity}%` : "Cargando..."}</h2>
+      <h1>Sensor ESP32 Dashboard</h1>
+      <h2>
+        Humedad:{" "}
+        {data.humedad !== null ? `${data.humedad.toFixed(1)} %` : "..."}
+      </h2>
+      <h2>
+        Temperatura:{" "}
+        {data.temperatura !== null
+          ? `${data.temperatura.toFixed(1)} °C`
+          : "..."}
+      </h2>
+      <h2>
+        Umbral actual:{" "}
+        {data.umbral !== null ? `${data.umbral.toFixed(1)} %` : "..."}
+      </h2>
+
+      <div style={{ marginTop: 30 }}>
+        <input
+          type="number"
+          value={newUmbral}
+          placeholder="Nuevo umbral (%)"
+          onChange={(e) => setNewUmbral(e.target.value)}
+        />
+        <button onClick={handleUmbralChange} style={{ marginLeft: 10 }}>
+          Cambiar Umbral
+        </button>
       </div>
     </div>
   );
