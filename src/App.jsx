@@ -18,6 +18,7 @@ function App() {
     umbral: null,
   });
   const [newUmbral, setNewUmbral] = useState("");
+  const [newDuracion, setNewDuracion] = useState("");
 
   useEffect(() => {
     if (isConnected) {
@@ -57,12 +58,15 @@ function App() {
     }
   };
 
-  const handleUmbralChange = () => {
-    if (client && newUmbral) {
-      const umbralValue = parseFloat(newUmbral);
-      client.publish(CONFIG_TOPIC, JSON.stringify({ umbral: umbralValue }));
-      console.log("Nuevo umbral enviado:", umbralValue);
+  const handleConfigChange = () => {
+    if (client && (newUmbral || newDuracion)) {
+      const payload = {};
+      if (newUmbral) payload.umbral = parseFloat(newUmbral);
+      if (newDuracion) payload.duracion = parseFloat(newDuracion) * 60000; // minutos a ms
+      client.publish(CONFIG_TOPIC, JSON.stringify(payload));
+      console.log("Nueva configuración enviada:", payload);
       setNewUmbral("");
+      setNewDuracion("");
     }
   };
 
@@ -122,6 +126,12 @@ function App() {
         Umbral actual:{" "}
         {data.umbral !== null ? `${data.umbral.toFixed(1)} %` : "..."}
       </h2>
+      <h2>
+        Tiempo de riego actual:{" "}
+        {data.duracion !== null
+          ? `${(data.duracion / 60000).toFixed(1)} min`
+          : "..."}
+      </h2>
 
       <div style={{ marginTop: 30 }}>
         <input
@@ -129,10 +139,16 @@ function App() {
           value={newUmbral}
           placeholder="Nuevo umbral (%)"
           onChange={(e) => setNewUmbral(e.target.value)}
+          style={{ marginRight: 10 }}
         />
-        <button onClick={handleUmbralChange} style={{ marginLeft: 10 }}>
-          Cambiar Umbral
-        </button>
+        <input
+          type="number"
+          value={newDuracion}
+          placeholder="Duración riego (min)"
+          onChange={(e) => setNewDuracion(e.target.value)}
+          style={{ marginRight: 10 }}
+        />
+        <button onClick={handleConfigChange}>Cambiar Configuración</button>
       </div>
     </div>
   );
