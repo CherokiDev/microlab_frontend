@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 
 const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER;
-const TOPIC = import.meta.env.VITE_MQTT_TOPIC;
-const CONFIG_TOPIC =
-  import.meta.env.VITE_MQTT_CONFIG_TOPIC || "sensors/riego_esp32_01/config";
+const TOPIC_PATTERN = "sensors/riego_esp32_+"; // Suscribe a todos los sensores
+const CONFIG_TOPIC_PREFIX = "sensors/riego_esp32_";
+const CONFIG_TOPIC_SUFFIX = "/config";
 
 function App() {
   const [username, setUsername] = useState("");
@@ -12,11 +12,9 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [client, setClient] = useState(null);
 
-  const [data, setData] = useState({
-    humedad: null,
-    temperatura: null,
-    umbral: null,
-  });
+  // Estado para todos los sensores
+  const [sensors, setSensors] = useState({}); // { xxx: { humedad, temperatura, umbral, duracion } }
+  const [selectedSensor, setSelectedSensor] = useState(null);
   const [newUmbral, setNewUmbral] = useState("");
   const [newDuracion, setNewDuracion] = useState("");
 
@@ -27,21 +25,28 @@ function App() {
         password,
         rejectUnauthorized: false,
       });
-
       setClient(mqttClient);
 
       mqttClient.on("connect", () => {
-        mqttClient.subscribe(TOPIC, (err) => {
-          if (!err) console.log(`Suscrito al tópico: ${TOPIC}`);
+        mqttClient.subscribe("sensors/#", (err) => {
+          if (!err) console.log("Suscrito a todos los sensores");
         });
       });
 
       mqttClient.on("message", (topic, message) => {
-        try {
-          const payload = JSON.parse(message.toString());
-          setData(payload);
-        } catch (err) {
-          console.error("Error al parsear mensaje:", err);
+        // topic: sensors/riego_esp32_xxx
+        const match = topic.match(/sensors\/riego_esp32_(\w+)/);
+        if (match) {
+          const sensorId = match[1];
+          try {
+            const payload = JSON.parse(message.toString());
+            setSensors((prev) => ({
+              ...prev,
+              [sensorId]: payload,
+            }));
+          } catch (err) {
+            console.error("Error al parsear mensaje:", err);
+          }
         }
       });
 
@@ -59,12 +64,13 @@ function App() {
   };
 
   const handleConfigChange = () => {
-    if (client && (newUmbral || newDuracion)) {
+    if (client && selectedSensor && (newUmbral || newDuracion)) {
       const payload = {};
       if (newUmbral) payload.umbral = parseFloat(newUmbral);
-      if (newDuracion) payload.duracion = parseFloat(newDuracion) * 60000; // minutos a ms
-      client.publish(CONFIG_TOPIC, JSON.stringify(payload));
-      console.log("Nueva configuración enviada:", payload);
+      if (newDuracion) payload.duracion = parseFloat(newDuracion) * 60000;
+      const configTopic = `${CONFIG_TOPIC_PREFIX}${selectedSensor}${CONFIG_TOPIC_SUFFIX}`;
+      client.publish(configTopic, JSON.stringify(payload));
+      console.log("Nueva configuración enviada a", configTopic, payload);
       setNewUmbral("");
       setNewDuracion("");
     }
@@ -107,49 +113,121 @@ function App() {
     );
   }
 
-  return (
-    <div
-      style={{ fontFamily: "sans-serif", textAlign: "center", marginTop: 50 }}
-    >
-      <h1>Sensor ESP32 Dashboard</h1>
-      <h2>
-        Humedad:{" "}
-        {data.humedad !== null ? `${data.humedad.toFixed(1)} %` : "..."}
-      </h2>
-      <h2>
-        Temperatura:{" "}
-        {data.temperatura !== null
-          ? `${data.temperatura.toFixed(1)} °C`
-          : "..."}
-      </h2>
-      <h2>
-        Umbral actual:{" "}
-        {data.umbral !== null ? `${data.umbral.toFixed(1)} %` : "..."}
-      </h2>
-      <h2>
-        Tiempo de riego actual:{" "}
-        {data.duracion !== null
-          ? `${(data.duracion / 60000).toFixed(1)} min`
-          : "..."}
-      </h2>
+  // Lista de sensores detectados
+  const sensorIds = Object.keys(sensors);
 
-      <div style={{ marginTop: 30 }}>
-        <input
-          type="number"
-          value={newUmbral}
-          placeholder="Nuevo umbral (%)"
-          onChange={(e) => setNewUmbral(e.target.value)}
-          style={{ marginRight: 10 }}
-        />
-        <input
-          type="number"
-          value={newDuracion}
-          placeholder="Duración riego (min)"
-          onChange={(e) => setNewDuracion(e.target.value)}
-          style={{ marginRight: 10 }}
-        />
-        <button onClick={handleConfigChange}>Cambiar Configuración</button>
+  return (
+    <div id="root">
+      <h1>Dashboard Sensores ESP32</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 20,
+          marginBottom: 30,
+          flexWrap: "wrap",
+        }}
+      >
+        {sensorIds.length === 0 ? (
+          <span style={{ color: "#888", fontSize: 18 }}>
+            No hay sensores conectados aún.
+          </span>
+        ) : (
+          sensorIds.map((id) => (
+            <button
+              key={id}
+              style={{
+                padding: "10px 20px",
+                borderRadius: 8,
+                border:
+                  selectedSensor === id
+                    ? "2px solid #007bff"
+                    : "1px solid #007bff",
+                background: selectedSensor === id ? "#e3f2fd" : "#fff",
+                color: selectedSensor === id ? "#007bff" : "#213547",
+                fontWeight: "bold",
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+                minWidth: 120,
+              }}
+              onClick={() => setSelectedSensor(id)}
+            >
+              Sensor <span style={{ color: "#0056b3" }}>{id}</span>
+            </button>
+          ))
+        )}
       </div>
+
+      {selectedSensor && sensors[selectedSensor] && (
+        <div className="card">
+          <h2 style={{ marginBottom: 20, color: "#007bff" }}>
+            Sensor <span style={{ color: "#0056b3" }}>{selectedSensor}</span>
+          </h2>
+          <div style={{ fontSize: 20, marginBottom: 10 }}>
+            <strong>Humedad:</strong>{" "}
+            {sensors[selectedSensor]?.humedad !== undefined &&
+            sensors[selectedSensor]?.humedad !== null ? (
+              <span style={{ color: "#388e3c" }}>
+                {Number(sensors[selectedSensor].humedad).toFixed(1)} %
+              </span>
+            ) : (
+              "..."
+            )}
+          </div>
+          <div style={{ fontSize: 20, marginBottom: 10 }}>
+            <strong>Temperatura:</strong>{" "}
+            {sensors[selectedSensor]?.temperatura !== undefined &&
+            sensors[selectedSensor]?.temperatura !== null ? (
+              <span style={{ color: "#f57c00" }}>
+                {Number(sensors[selectedSensor].temperatura).toFixed(1)} °C
+              </span>
+            ) : (
+              "..."
+            )}
+          </div>
+          <div style={{ fontSize: 20, marginBottom: 10 }}>
+            <strong>Umbral actual:</strong>{" "}
+            {sensors[selectedSensor]?.umbral !== undefined &&
+            sensors[selectedSensor]?.umbral !== null ? (
+              <span style={{ color: "#1976d2" }}>
+                {Number(sensors[selectedSensor].umbral).toFixed(1)} %
+              </span>
+            ) : (
+              "..."
+            )}
+          </div>
+          <div style={{ fontSize: 20, marginBottom: 10 }}>
+            <strong>Tiempo de riego actual:</strong>{" "}
+            {sensors[selectedSensor]?.duracion !== undefined &&
+            sensors[selectedSensor]?.duracion !== null ? (
+              <span style={{ color: "#6d4c41" }}>
+                {(Number(sensors[selectedSensor].duracion) / 60000).toFixed(1)}{" "}
+                min
+              </span>
+            ) : (
+              "..."
+            )}
+          </div>
+
+          <div style={{ marginTop: 30 }}>
+            <input
+              type="number"
+              value={newUmbral}
+              placeholder="Nuevo umbral (%)"
+              onChange={(e) => setNewUmbral(e.target.value)}
+              style={{ marginRight: 10, width: 140 }}
+            />
+            <input
+              type="number"
+              value={newDuracion}
+              placeholder="Duración riego (min)"
+              onChange={(e) => setNewDuracion(e.target.value)}
+              style={{ marginRight: 10, width: 140 }}
+            />
+            <button onClick={handleConfigChange}>Cambiar Configuración</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
