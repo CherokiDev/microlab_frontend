@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 
 const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER;
-const TOPIC_PATTERN = "sensors/riego_esp32_+"; // Suscribe a todos los sensores
 const CONFIG_TOPIC_PREFIX = "sensors/riego_esp32_";
 const CONFIG_TOPIC_SUFFIX = "/config";
 
@@ -163,6 +162,21 @@ function App() {
           <h2 style={{ marginBottom: 20, color: "#007bff" }}>
             Sensor <span style={{ color: "#0056b3" }}>{selectedSensor}</span>
           </h2>
+          {/* NIVEL AGUA */}
+          <div style={{ fontSize: 20, marginBottom: 18 }}>
+            <strong>Depósito:</strong>{" "}
+            {sensors[selectedSensor]?.nivel_agua === false ? (
+              <span style={{ color: "#d32f2f", fontWeight: "bold" }}>
+                🚫💧 Sin agua en el depósito
+              </span>
+            ) : sensors[selectedSensor]?.nivel_agua === true ? (
+              <span style={{ color: "#388e3c", fontWeight: "bold" }}>
+                💧 Depósito OK
+              </span>
+            ) : (
+              <span style={{ color: "#888" }}>...</span>
+            )}
+          </div>
           <div style={{ fontSize: 20, marginBottom: 10 }}>
             <strong>Humedad:</strong>{" "}
             {sensors[selectedSensor]?.humedad !== undefined &&
