@@ -4,7 +4,6 @@ import mqtt from "mqtt";
 const MQTT_BROKER = import.meta.env.VITE_MQTT_BROKER;
 const CONFIG_TOPIC_PREFIX = "sensors/riego_esp32_";
 const CONFIG_TOPIC_SUFFIX = "/config";
-const MQTT_TOPIC_BASE = "sensors/eventos";
 
 function App() {
   const [username, setUsername] = useState("");
@@ -17,7 +16,6 @@ function App() {
   const [selectedSensor, setSelectedSensor] = useState(null);
   const [newUmbral, setNewUmbral] = useState("");
   const [newDuracion, setNewDuracion] = useState("");
-  const [sleepNocturno, setSleepNocturno] = useState(false);
 
   useEffect(() => {
     if (isConnected) {
@@ -32,25 +30,9 @@ function App() {
         mqttClient.subscribe("sensors/#", (err) => {
           if (!err) console.log("Suscrito a todos los sensores");
         });
-        mqttClient.subscribe(MQTT_TOPIC_BASE, (err) => {
-          if (!err) console.log("Suscrito a evento sleep nocturno");
-        });
       });
 
       mqttClient.on("message", (topic, message) => {
-        // Detecta evento sleep nocturno
-        if (topic === MQTT_TOPIC_BASE) {
-          try {
-            const payload = JSON.parse(message.toString());
-            if (payload.evento === "sleep_nocturno") {
-              setSleepNocturno(true);
-            } else {
-              setSleepNocturno(false);
-            }
-          } catch (err) {
-            console.error("Error al parsear mensaje sleep:", err);
-          }
-        }
         // topic: sensors/riego_esp32_xxx
         const match = topic.match(/sensors\/riego_esp32_(\w+)/);
         if (match) {
@@ -86,7 +68,7 @@ function App() {
       if (newUmbral) payload.umbral = parseFloat(newUmbral);
       if (newDuracion) payload.duracion = parseFloat(newDuracion) * 60000;
       const configTopic = `${CONFIG_TOPIC_PREFIX}${selectedSensor}${CONFIG_TOPIC_SUFFIX}`;
-      client.publish(configTopic, JSON.stringify(payload), { retain: true });
+      client.publish(configTopic, JSON.stringify(payload));
       console.log("Nueva configuración enviada a", configTopic, payload);
       setNewUmbral("");
       setNewDuracion("");
@@ -131,32 +113,11 @@ function App() {
   }
 
   // Lista de sensores detectados
-  // Solo mostrar sensores que tengan humedad (o cualquier dato relevante)
-  const sensorIds = Object.keys(sensors).filter(
-    (id) => sensors[id]?.humedad !== undefined && sensors[id]?.humedad !== null
-  );
+  const sensorIds = Object.keys(sensors);
 
   return (
     <div id="root">
       <h1>Dashboard Sensores ESP32</h1>
-      {sleepNocturno && (
-        <div
-          style={{
-            background: "#ffe082",
-            color: "#6d4c41",
-            padding: "12px 20px",
-            borderRadius: 8,
-            marginBottom: 20,
-            fontWeight: "bold",
-            fontSize: 18,
-            textAlign: "center",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-          }}
-        >
-          🌙 El sistema está en modo nocturno (20:00 a 10:00). Los sensores
-          están en reposo.
-        </div>
-      )}
       <div
         style={{
           display: "flex",
@@ -206,7 +167,7 @@ function App() {
             <strong>Depósito:</strong>{" "}
             {sensors[selectedSensor]?.nivel_agua === false ? (
               <span style={{ color: "#d32f2f", fontWeight: "bold" }}>
-                🚫💧 Sin agua
+                🚫💧 Sin agua en el depósito
               </span>
             ) : sensors[selectedSensor]?.nivel_agua === true ? (
               <span style={{ color: "#388e3c", fontWeight: "bold" }}>
