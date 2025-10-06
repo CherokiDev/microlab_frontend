@@ -264,46 +264,58 @@ function SensorCard({ id, data, onConfigChange, newConfig, setNewConfig }) {
     );
   };
 
+  // Verifica si el evento sleep_nocturno está activo
+  const enReposoNocturno = eventos.some((ev) => ev.evento === "sleep_nocturno");
+
   return (
     <div className="card">
       <h2 style={{ color: "#1976d2" }}>Sensor: {id}</h2>
 
       {eventos.length > 0 && <div>{eventos.map(renderEvento)}</div>}
 
-      <p style={{ color: colorEstado, fontWeight: "bold" }}>
-        {data.nivel_agua ? "💧 Depósito OK" : "🚫 Sin agua"}
-      </p>
-      <p>🌡️ Temp: {data.temperatura?.toFixed(1) ?? "--"} °C</p>
-      <p>💦 Humedad: {data.humedad?.toFixed(1) ?? "--"} %</p>
-      <p>🎚️ Umbral: {data.umbral?.toFixed(1) ?? "--"} %</p>
-      <p>
-        ⏱️ Duración: {data.duracion ? (data.duracion / 60000).toFixed(1) : "--"}{" "}
-        min
-      </p>
+      {enReposoNocturno ? (
+        <div style={{ marginTop: 20, color: "#888", fontStyle: "italic" }}>
+          El sensor está en <b>modo reposo nocturno</b>. Los valores no se
+          actualizan durante este periodo.
+        </div>
+      ) : (
+        <>
+          <p style={{ color: colorEstado, fontWeight: "bold" }}>
+            {data.nivel_agua ? "💧 Depósito OK" : "🚫 Sin agua"}
+          </p>
+          <p>🌡️ Temp: {data.temperatura?.toFixed(1) ?? "--"} °C</p>
+          <p>💦 Humedad: {data.humedad?.toFixed(1) ?? "--"} %</p>
+          <p>🎚️ Umbral: {data.umbral?.toFixed(1) ?? "--"} %</p>
+          <p>
+            ⏱️ Duración:{" "}
+            {data.duracion ? (data.duracion / 60000).toFixed(1) : "--"} min
+          </p>
 
-      <div style={{ marginTop: 20 }}>
-        <input
-          type="number"
-          placeholder="Nuevo umbral (%)"
-          value={newConfig.umbral}
-          onChange={(e) =>
-            setNewConfig({ ...newConfig, umbral: e.target.value })
-          }
-          className="input-small"
-        />
-        <input
-          type="number"
-          placeholder="Duración (min)"
-          value={newConfig.duracion}
-          onChange={(e) =>
-            setNewConfig({ ...newConfig, duracion: e.target.value })
-          }
-          className="input-small"
-        />
-        <button onClick={onConfigChange} className="button-small">
-          Enviar
-        </button>
-      </div>
+          <div style={{ marginTop: 20 }}>
+            <input
+              type="number"
+              placeholder="Nuevo umbral (%)"
+              value={newConfig.umbral}
+              onChange={(e) =>
+                setNewConfig({ ...newConfig, umbral: e.target.value })
+              }
+              className="input-small"
+            />
+            <input
+              type="number"
+              placeholder="Duración (min)"
+              value={newConfig.duracion}
+              onChange={(e) =>
+                setNewConfig({ ...newConfig, duracion: e.target.value })
+              }
+              className="input-small"
+            />
+            <button onClick={onConfigChange} className="button-small">
+              Enviar
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
