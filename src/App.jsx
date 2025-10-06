@@ -104,7 +104,7 @@ export default function App() {
 
     const topic = `${BASE_TOPIC}${selectedSensor}${CONFIG_SUFFIX}`;
     client.publish(topic, JSON.stringify(payload));
-    console.log("⚙️ Config enviada:");
+    console.log("⚙️ Config enviada");
     setNewConfig({ umbral: "", duracion: "" });
   };
 
@@ -141,9 +141,19 @@ export default function App() {
 
   return (
     <div className="container">
-      <h1>🌿 Dashboard de Riego ESP32</h1>
+      <h1>Dashboard de sensores de riego</h1>
 
-      <div className="sensor-list">
+      <div
+        className="sensor-list"
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "18px",
+          justifyContent: "center",
+          marginTop: "1rem",
+          marginBottom: "1rem",
+        }}
+      >
         {sensorIds.length === 0 ? (
           <p style={{ color: "#888" }}>Esperando sensores...</p>
         ) : (
@@ -154,6 +164,19 @@ export default function App() {
               className={`sensor-btn${
                 selectedSensor === id ? " selected" : ""
               }`}
+              style={{
+                padding: "12px 18px",
+                borderWidth: "2px",
+                borderStyle: "solid",
+                borderColor: selectedSensor === id ? "#1976d2" : "#007bff",
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                minWidth: "120px",
+                background: selectedSensor === id ? "#e3f2fd" : "#fff",
+                color: "#007bff",
+                transition: "background 0.2s, color 0.2s, border-color 0.2s",
+              }}
             >
               {id}
             </button>
@@ -176,44 +199,69 @@ export default function App() {
 
 // ===== Componente para mostrar un sensor =====
 function SensorCard({ id, data, onConfigChange, newConfig, setNewConfig }) {
-  const eventos = data?.eventos || [];
+  // Los eventos llegan como array de strings JSON, los parseamos aquí
+  const eventos = (data?.eventos || []).map((ev) => {
+    try {
+      return typeof ev === "string" ? JSON.parse(ev) : ev;
+    } catch {
+      return { evento: ev, fecha: null };
+    }
+  });
   const colorEstado = data.nivel_agua ? "#388e3c" : "#d32f2f";
 
-  const renderEvento = (ev, idx) => {
-    switch (ev) {
+  const renderEvento = (evObj, idx) => {
+    if (!evObj || typeof evObj !== "object") return null;
+    const { evento, fecha } = evObj;
+
+    let mensaje = null;
+    switch (evento) {
       case "ntp_error":
-        return (
-          <div key={idx} className="alert-error">
-            ⚠️ Error NTP: hora no sincronizada
-          </div>
-        );
+        mensaje = "⚠️ Error NTP: hora no sincronizada";
+        break;
       case "sleep_nocturno":
-        return (
-          <div key={idx} className="alert-sleep">
-            💤 Modo reposo nocturno
-          </div>
-        );
+        mensaje = "💤 Modo reposo nocturno";
+        break;
       case "pump_on":
-        return (
-          <div key={idx} className="alert-pump-on">
-            🚰 Bomba encendida
-          </div>
-        );
+        mensaje = "🚰 Bomba encendida";
+        break;
       case "pump_off_no_water":
-        return (
-          <div key={idx} className="alert-error">
-            🚫 Bomba apagada por falta de agua
-          </div>
-        );
+        mensaje = "🚫 Bomba apagada por falta de agua";
+        break;
       case "pump_off_done":
-        return (
-          <div key={idx} className="alert-sleep">
-            ⏹️ Bomba apagada (duración completada)
-          </div>
-        );
+        mensaje = "⏹️ Bomba apagada (duración completada)";
+        break;
+      case "init_ok":
+        mensaje = "✅ Inicialización correcta";
+        break;
+      case "pump_blocked_no_water":
+        mensaje = "🛑 Bomba bloqueada por falta de agua";
+        break;
       default:
-        return null;
+        mensaje = evento;
     }
+
+    return (
+      <div key={idx} className="alert-evento">
+        <span>{mensaje}</span>
+        {fecha && (
+          <>
+            <br />
+            <span
+              style={{ marginLeft: "20px", color: "#888", fontSize: "0.9em" }}
+            >
+              {new Date(fecha).toLocaleString()}
+            </span>
+          </>
+        )}
+        <hr
+          style={{
+            margin: "5px 0",
+            border: "none",
+            borderTop: "1px solid #ccc",
+          }}
+        />
+      </div>
+    );
   };
 
   return (
