@@ -1,49 +1,106 @@
-#root {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem;
+/* Mobile-first: estilos base para pantallas pequeñas */
+.container {
   text-align: center;
-  background: #f4f8fb;
-  border-radius: 18px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  font-family: sans-serif;
+  padding: 1rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.center {
+  text-align: center;
+  margin-top: 40px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.sensor-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 1rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.sensor-btn {
+  padding: 10px 15px;
+  border: 2px solid #007bff;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  min-width: 120px;
+  background: #fff;
+  color: #007bff;
+  margin-bottom: 8px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.sensor-btn.selected {
+  background: #e3f2fd;
+  border-color: #1976d2;
 }
 
 .card {
-  padding: 2em;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  margin-bottom: 2em;
+  margin-top: 2rem;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 1rem;
+  display: inline-block;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  max-width: 350px;
+  width: 100%;
 }
 
-.read-the-docs {
-  color: #888;
+.input-small {
+  margin-right: 8px;
+  padding: 6px;
+  width: 100px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1em;
 }
+
+.button-small {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #1976d2;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.alert-error {
+  color: #d32f2f;
+  font-weight: bold;
+  font-size: 1.1em;
+  margin: 16px 0;
+}
+
+.alert-sleep {
+  color: #888;
+  font-size: 1.1em;
+  margin: 16px 0;
+}
+
+.alert-pump-on {
+  color: #1976d2;
+  font-weight: bold;
+  font-size: 1.1em;
+  margin: 16px 0;
+}
+
+/* Adaptación para pantallas mayores */
+@media (min-width: 600px) {
+  .container {
+    padding: 2rem;
+  }
+  .card {
+    padding: 2rem;
+    max-width: 500px;
+  }
+  .sensor-btn {
+    min-width: 140px;
+  }
+  .input-small {
+    width: 120px;
+  }
+}
+

@@ -67,6 +67,8 @@ input[type="text"], input[type="password"], input[type="number"] {
   margin-bottom: 0.5em;
   background: #fff;
   color: #213547;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 label {
