@@ -16,6 +16,7 @@ export default function App() {
   const [sensors, setSensors] = useState({});
   const [selectedSensor, setSelectedSensor] = useState(null);
   const [newConfig, setNewConfig] = useState({ umbral: "", duracion: "" });
+  const [lastUpdate, setLastUpdate] = useState({});
 
   const reconnectTimeout = useRef(null);
 
@@ -74,6 +75,14 @@ export default function App() {
             return { ...prev, [deviceId]: { ...prevSensor, ...payload } };
           }
         });
+
+        // Usa el timestamp del backend si existe
+        if (payload.timestamp) {
+          setLastUpdate((prev) => ({
+            ...prev,
+            [deviceId]: new Date(payload.timestamp).getTime(),
+          }));
+        }
       } catch (err) {
         console.error("Error procesando mensaje:", err);
       }
@@ -191,6 +200,7 @@ export default function App() {
           onConfigChange={handleConfigChange}
           newConfig={newConfig}
           setNewConfig={setNewConfig}
+          lastUpdate={lastUpdate[selectedSensor]}
         />
       )}
     </div>
@@ -198,7 +208,14 @@ export default function App() {
 }
 
 // ===== Componente para mostrar un sensor =====
-function SensorCard({ id, data, onConfigChange, newConfig, setNewConfig }) {
+function SensorCard({
+  id,
+  data,
+  onConfigChange,
+  newConfig,
+  setNewConfig,
+  lastUpdate,
+}) {
   // Los eventos llegan como array de strings JSON, los parseamos aquí
   const eventos = (data?.eventos || []).map((ev) => {
     try {
@@ -267,18 +284,32 @@ function SensorCard({ id, data, onConfigChange, newConfig, setNewConfig }) {
   // Verifica si el evento sleep_nocturno está activo
   const enReposoNocturno = eventos.some((ev) => ev.evento === "sleep_nocturno");
 
+  // Lógica para detectar posible desconexión
+  const UPDATE_TIMEOUT = 5 * 60 * 1000; // 5 minutos
+  const now = Date.now();
+  const sinActualizacion =
+    !enReposoNocturno && lastUpdate && now - lastUpdate > UPDATE_TIMEOUT;
+
   return (
     <div className="card">
       <h2 style={{ color: "#1976d2" }}>Sensor: {id}</h2>
 
+      {/* Eventos arriba */}
       {eventos.length > 0 && <div>{eventos.map(renderEvento)}</div>}
 
+      {/* Avisos en el lugar de los sensores */}
       {enReposoNocturno ? (
         <div style={{ marginTop: 20, color: "#888", fontStyle: "italic" }}>
           El sensor está en <b>modo reposo nocturno</b>. Los valores no se
           actualizan durante este periodo.
         </div>
+      ) : sinActualizacion ? (
+        <div style={{ marginTop: 20, color: "#d32f2f", fontStyle: "italic" }}>
+          ⚠️ <b>Advertencia:</b> No se reciben datos del sensor desde hace más
+          de 5 minutos. Es posible que el sensor esté desconectado o sin WiFi.
+        </div>
       ) : (
+        // Sensores abajo
         <>
           <p style={{ color: colorEstado, fontWeight: "bold" }}>
             {data.nivel_agua ? "💧 Depósito OK" : "🚫 Sin agua"}
@@ -290,7 +321,6 @@ function SensorCard({ id, data, onConfigChange, newConfig, setNewConfig }) {
             ⏱️ Duración:{" "}
             {data.duracion ? (data.duracion / 60000).toFixed(1) : "--"} min
           </p>
-
           <div style={{ marginTop: 20 }}>
             <input
               type="number"
