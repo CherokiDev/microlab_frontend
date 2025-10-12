@@ -316,6 +316,7 @@ function SensorCard({
           </p>
           <p>🌡️ Temp: {data.temperatura?.toFixed(1) ?? "--"} °C</p>
           <p>💦 Humedad: {data.humedad?.toFixed(1) ?? "--"} %</p>
+          <p>🔋 Batería: {data.bateria_pct?.toFixed(0) ?? "--"} %</p>
           <p>🎚️ Umbral: {data.umbral?.toFixed(1) ?? "--"} %</p>
           <p>
             ⏱️ Duración:{" "}
