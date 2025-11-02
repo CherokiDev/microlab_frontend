@@ -8,8 +8,17 @@ const BASE_TOPIC = "sensors/";
 const CONFIG_SUFFIX = "/config";
 const EVENTS_SUFFIX = "/events";
 
+const READONLY_USERS = (import.meta.env.VITE_MQTT_READONLY_USERS || "")
+  .split(",")
+  .map((u) => u.trim())
+  .filter(Boolean);
+
 export default function App() {
-  const [auth, setAuth] = useState({ username: "", password: "" });
+  const [auth, setAuth] = useState({
+    username: "",
+    password: "",
+    readOnly: false,
+  });
   const [isConnected, setIsConnected] = useState(false);
   const [client, setClient] = useState(null);
 
@@ -125,6 +134,10 @@ export default function App() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            setAuth((prev) => ({
+              ...prev,
+              readOnly: READONLY_USERS.includes(prev.username),
+            }));
             setIsConnected(true);
           }}
         >
@@ -201,6 +214,7 @@ export default function App() {
           newConfig={newConfig}
           setNewConfig={setNewConfig}
           lastUpdate={lastUpdate[selectedSensor]}
+          readOnly={auth.readOnly}
         />
       )}
     </div>
@@ -215,6 +229,7 @@ function SensorCard({
   newConfig,
   setNewConfig,
   lastUpdate,
+  readOnly,
 }) {
   // Los eventos llegan como array de strings JSON, los parseamos aquí
   const eventos = (data?.eventos || []).map((ev) => {
@@ -331,6 +346,7 @@ function SensorCard({
                 setNewConfig({ ...newConfig, umbral: e.target.value })
               }
               className="input-small"
+              disabled={readOnly}
             />
             <input
               type="number"
@@ -340,10 +356,26 @@ function SensorCard({
                 setNewConfig({ ...newConfig, duracion: e.target.value })
               }
               className="input-small"
+              disabled={readOnly}
             />
-            <button onClick={onConfigChange} className="button-small">
+            <button
+              onClick={onConfigChange}
+              className="button-small"
+              disabled={readOnly}
+              style={{
+                opacity: readOnly ? 0.5 : 1,
+                cursor: readOnly ? "not-allowed" : "pointer",
+                pointerEvents: readOnly ? "none" : "auto",
+              }}
+            >
               Enviar
             </button>
+            {readOnly && (
+              <div style={{ color: "#888", fontSize: "0.9em", marginTop: 8 }}>
+                Solo lectura: no tienes permisos para modificar la
+                configuración.
+              </div>
+            )}
           </div>
         </>
       )}
