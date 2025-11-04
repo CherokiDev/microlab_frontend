@@ -1,12 +1,23 @@
-# React + Vite
+<div align="center">
+	<img src="public/view_smartphone.jpg" alt="Microlab" width="300"/>
+</div>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Microlab Frontend
 
-Currently, two official plugins are available:
+Una aplicación frontend moderna basada en React, diseñada para el monitoreo y control en tiempo real de microcontroladores con diversos sensores. Construida con Vite para un desarrollo rápido y rendimiento optimizado.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Características
 
-## Expanding the ESLint configuration
+- Visualización de datos en tiempo real utilizando el protocolo MQTT
+- Interfaz de usuario responsiva construida con React
+- Soporte para múltiples dispositivos y sensores
+- Integración con Mosquitto para la gestión de mensajes MQTT
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Aplicación en Vivo
+
+Accede a la aplicación en vivo en: [microlab.cheroki.dev](https://microlab.cheroki.dev)
+
+Para fines de prueba, utiliza las siguientes credenciales:
+
+- **Usuario:** solo_lectura
+- **Contraseña:** solo_lectura
